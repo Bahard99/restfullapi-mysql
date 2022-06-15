@@ -1,2 +1,2 @@
-# restfullapi-mysql
-CRUD Restfull API with MySQL database
+# restfullapi-mysql GOlang
+CRUD Restfull API with MySQL database Golang
