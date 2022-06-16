@@ -14,10 +14,10 @@ import (
 )
 
 type Person struct {
-	ID 		string	`json:"id"`
-	Name	string	`json:"name"`
-	Age		int		`json:"age"`
-	Grade	int		`json:"grade"`
+	ID 		string	`json:"id,omitempty"`
+	Name	string	`json:"name,omitempty"`
+	Age		int		`json:"age,omitempty"`
+	Grade	int		`json:"grade,omitempty"`
 }
 
 func conn() (*sql.DB, error) {
@@ -33,7 +33,8 @@ func main()  {
 	log.Println("Starting server at localhost:8080")
 
 	app := fiber.New()
-	app.Get("/get/:id?", getPerson)
+	app.Get("/getall", getAllPerson)
+	app.Get("/getone/:id", getOnePerson)
 	app.Post("/create", createPerson)
 	app.Put("/update/:id", updatePerson)
 	app.Delete("/delete/:id", deletePerson)
@@ -63,7 +64,33 @@ func createPerson(c *fiber.Ctx)  {
 	c.Send(res)
 }
 
-func getPerson(c *fiber.Ctx) {
+func getOnePerson(c *fiber.Ctx) {
+	db, err := conn()
+	if err != nil {
+		c.Status(500).Send(err)
+		return
+	}
+	defer db.Close()
+
+	id := c.Params("id")
+
+	var each = Person{}
+
+	err = db.QueryRow("select * from student where idd = ?", id).Scan(&each.ID, &each.Name, &each.Age, &each.Grade)
+	switch {
+	case err == sql.ErrNoRows:
+		c.Status(404).Send("Data Not Found!!")
+		return
+	case err != nil:
+		c.Status(500).Send(err)
+		return
+	}
+
+	json, _ := json.Marshal(each)
+	c.Send(json)
+}
+ 
+func getAllPerson(c *fiber.Ctx) {
 	db, err := conn()
 	if err != nil {
 		c.Status(500).Send(err)
@@ -71,17 +98,7 @@ func getPerson(c *fiber.Ctx) {
 	}
 	defer db.Close()
 
-	query := "select * from student"
-	id 	  := ""
-
-	if c.Params("id") != "" {
-		id = c.Params("id")
-		query = "select * from student where id = ?"
-		// query = fmt.Sprintf("%q, %s", query1, id)
-		// db.Query("select * from student where id = ?", id)
-	}
-
-	rows, err := db.Query(query, id)
+	rows, err := db.Query("select * from student")
 	if err != nil {
 		c.Status(500).Send(err)
 		return
